@@ -1,32 +1,18 @@
 //
-//  favoriteParkApp.swift
-//  favoritePark
+//  fruitTableSectionsSwiftUIApp.swift
+//  fruitTableSectionsSwiftUI
 //
-//  Created by Daniel on 3/17/25.
+//  Created by Daniel Liao on 2/19/23.
 //
+// VIEW DEMO: https://youtube.com/shorts/aM0fM5Kxd_k?feature=share
 
 import SwiftUI
-import SwiftData
 
 @main
-struct favoriteParkApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+struct fruitTableSectionsSwiftUIApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(tlatitude: "", tlongitude: "", description: "", city: "", image: "o")
         }
-        .modelContainer(sharedModelContainer)
     }
 }

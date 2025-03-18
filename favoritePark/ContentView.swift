@@ -1,61 +1,152 @@
 //
 //  ContentView.swift
-//  favoritePark
+//  fruitTableSectionsSwiftUI
 //
-//  Created by Daniel on 3/17/25.
+//  Created by Daniel Liao on 2/19/23.
 //
+// VIEW DEMO: https://youtube.com/shorts/aM0fM5Kxd_k?feature=share
 
 import SwiftUI
-import SwiftData
+import MapKit
+import PhotosUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @StateObject var fruitVM: fruitViewModel = fruitViewModel()
+    @State var toInsertView = false
+    @State var fruitName = String()
+    @State var fruitType = String()
+    @State var tlatitude:String
+    @State var tlongitude:String
+    @State var description:String
+    @State var city:String
+    @State var insertPhoto = false
+    @State var selectedImage: UIImage? = nil
+    @State var image: String
+    
     var body: some View {
-        NavigationSplitView {
+        NavigationStack
+        {
             List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                ForEach(fruitVM.FruitGroups, id: \.id ) { FruitGroup in
+                    let viewModel = fruitVM
+                    fruitSectionView(fruitVM: viewModel, FruitGroup: FruitGroup)
+                }
+            }.navigationBarTitleDisplayMode(.inline)
+                .navigationTitle("Favorite Parks")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            
+                            toInsertView = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+                }.alert("Insert", isPresented: $toInsertView, actions: {
+                    TextField("Name:", text: $fruitName)
+                    TextField("Category (A, B, ... Z):", text: $fruitType)
+                    TextField("City:", text: $city)
+                    TextField("latitude", text: $tlatitude)
+                    TextField("longitude", text: $tlongitude)
+                    TextField("Description", text: $description)
+                    
+                    
+                    Button("Step 1: Add Photo", action: {
+                        insertPhoto = true
+                    })
+                    
+                    
+                    Button("Step 2: Insert Park", action: {
+                        
+                        if let latVal = Double(tlatitude), let lngVal = Double(tlongitude) {
+                            let ind: Int = fruitVM.groupNametoNum (gName: fruitType)
+                            let fruit: Fruit = Fruit(name: fruitName, image: image, latitude: latVal, longitude: lngVal, description: description, city: city, parkImg: selectedImage)
+                            fruitVM.FruitGroups[ind].fruits.append(fruit)
+                            
+                            fruitName = ""
+                            fruitType = ""
+                            city = ""
+                            tlatitude = ""
+                            tlongitude = ""
+                            description = ""
+                            selectedImage = nil
+                            image = ""
+                        }
+                        
+                        
+                        
+                        
+                    })
+                    
+                    Button("Cancel", role: .cancel, action: {
+                        toInsertView = false
+                    })
+                    
+                }, message: {
+                    Text("Please Enter Park Detail to Add")
+                })
+            
+            
+        }
+        .sheet(isPresented: $insertPhoto) {
+            selectPhotoInsteadView(selectedImage: $selectedImage, toInsertView: $toInsertView, image: $image, sImage: $image)
         }
     }
+}
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+struct fruitSectionView: View {
+    @ObservedObject var fruitVM : fruitViewModel
+    let FruitGroup: FruitGroup
+    
+    
+    var body: some View {
+        
+        Section(header: Text(FruitGroup.groupName)) {
+            ForEach(FruitGroup.fruits) { fruit in
+                NavigationLink(destination: DetailView(vm: fruitVM, fruit: fruit))
+                {
+                    parkListView(fruit: fruit)
+                }
+            }.onDelete(perform: {IndexSet in
+                print(IndexSet)
+                let ind: Int = fruitVM.groupNametoNum (gName: FruitGroup.groupName)
+                if ind != -1 {
+                    fruitVM.FruitGroups[ind].fruits.remove(atOffsets: IndexSet)
+                }
+            })
         }
     }
+}
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+struct parkListView: View {
+    let fruit: Fruit
+    
+    
+    var body: some View {
+        HStack {
+            Image(uiImage: ((fruit.parkImg ?? UIImage(named: fruit.image)) ?? UIImage(named: "banana"))!)
+                .resizable()
+                .scaledToFit()
+                .frame(width:50, height: 50)
+                .cornerRadius(20)
+            VStack (alignment: .leading, spacing: 5){
+                
+                Text(fruit.name)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .minimumScaleFactor(0.5)
+                Text(fruit.city)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+struct ContentView_Previews: PreviewProvider {
+    
+    static var previews: some View {
+        ContentView(tlatitude: "", tlongitude: "", description: "", city: "", selectedImage: UIImage(named: "banana"), image: "banana")
+    }
 }
+
